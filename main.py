@@ -17,10 +17,13 @@ ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 PSW_LEN = 5
 HASH_LEN = 40
 TRUNC_LEN = 8
+NUM_CHAINS = 20000
+CHAIN_LEN = 500
 
 # ----------- PARÁMETROS ----------------
 
 
+def hash_build(s)
 
 
 
