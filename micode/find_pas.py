@@ -76,6 +76,12 @@ def search_collision(p0: bytes, rainbow_table: Dict[bytes, str],
     """
     Busca una colisión para el hash p0 usando la tabla arcoíris.
     
+    Este algoritmo está adaptado para Tablas Arcoíris (reducción variable)
+    en lugar del Algoritmo 2 simple (reducción constante).
+    
+    Fase 1: Proyecta p0 desde diferentes posiciones hasta el final
+    Fase 2: Reconstruye la cadena desde el inicio hasta encontrar p0
+    
     Args:
         p0: Hash del password original (resumen a atacar)
         rainbow_table: Diccionario {hash_final: password_inicial}
@@ -88,13 +94,16 @@ def search_collision(p0: bytes, rainbow_table: Dict[bytes, str],
     if verbose:
         print(f"\nBuscando colisión para hash: {p0.hex()}")
     
-    # Fase 1: Buscar en qué cadena podría estar
-    # Intentamos desde diferentes posiciones en la cadena
+    found_entry = None
+    
+    # FASE 1: Proyección y búsqueda
+    # Asumimos que p0 podría ser h(P_{i+1}) en cualquier posición i de la cadena
+    # y proyectamos hasta el final para ver si coincide con algún hash final en la tabla
     for i in range(chain_length):
         if verbose and i % 100 == 0:
             print(f"  Iteración {i}/{chain_length}...")
         
-        # Construir el hash final desde la posición i
+        # Proyectar desde la posición i hasta el final
         p = p0
         for j in range(i, chain_length - 1):
             p = hash_function(reduction_function(p, iteration=j))
@@ -102,18 +111,19 @@ def search_collision(p0: bytes, rainbow_table: Dict[bytes, str],
         # Verificar si este hash final está en la tabla
         if p in rainbow_table:
             found_entry = rainbow_table[p]
-            
             if verbose:
                 print(f"  ✓ Encontrado en iteración {i}")
                 print(f"    Password inicial de la cadena: '{found_entry}'")
             
-            # Fase 2: Reconstruir la cadena desde el inicio hasta encontrar la colisión
+            # FASE 2: Reconstrucción de la cadena
             pwd = found_entry
             
             if verbose:
                 print(f"\n  Reconstruyendo cadena desde '{pwd}'...")
             
-            for step in range(chain_length):
+            # CORRECCIÓN CRÍTICA: Solo hacer t-1 reducciones (índices 0 a t-2)
+            # Una cadena de longitud t tiene t passwords pero solo t-1 reducciones
+            for step in range(chain_length - 1):
                 # Verificar si este password produce el hash buscado
                 if hash_function(pwd) == p0:
                     if verbose:
@@ -122,26 +132,29 @@ def search_collision(p0: bytes, rainbow_table: Dict[bytes, str],
                         print(f"    Hash: {hash_function(pwd).hex()}")
                     return pwd
                 
-                # Avanzar en la cadena
-                pwd = reduction_function(hash_function(pwd), iteration=step)
-                
+                # Avanzar en la cadena: P_{step+1} -> P_{step+2}
                 if verbose and step % 100 == 0:
                     print(f"    Paso {step}: pwd='{pwd}'")
+                
+                pwd = reduction_function(hash_function(pwd), iteration=step)
             
-            # Verificar el último elemento de la cadena
+            # Después del bucle (t-1 iteraciones): pwd contiene P_t
+            # Verificar el último elemento de la cadena (P_t)
             if hash_function(pwd) == p0:
                 if verbose:
-                    print(f"  ✓ ¡Colisión encontrada al final de la cadena!")
+                    print(f"  ✓ ¡Colisión encontrada al final de la cadena (P_t)!")
                     print(f"    Password: '{pwd}'")
+                    print(f"    Hash: {hash_function(pwd).hex()}")
                 return pwd
             
-            # Falsa alarma - continuar buscando
+            # Si no se encuentra, es una falsa alarma - continuar buscando
             if verbose:
-                print(f"  ✗ Falsa alarma en esta cadena")
+                print(f"  ✗ Falsa alarma en esta cadena, continuando búsqueda...")
     
     # No se encontró en ninguna cadena
     if verbose:
         print("  ✗ No encontrado en la tabla")
+    
     return None
 
 def test_search_random(rainbow_table: Dict[bytes, str], chain_length: int, 
