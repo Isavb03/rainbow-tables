@@ -1,0 +1,44 @@
+
+======================================================================
+INFORME DE RESULTADOS - TABLA ARCOÍRIS
+======================================================================
+
+CONFIGURACIÓN:
+  - Alfabeto: abcdefghijklmnopqrstuvwxyz0123456789
+  - Tamaño alfabeto: 36 caracteres
+  - Longitud password: 5 caracteres
+  - Espacio total: 60,466,176 passwords posibles
+
+TABLA ARCOÍRIS:
+  - Número de cadenas (n): 25,000
+  - Longitud de cadena (t): 2000
+  - Passwords cubiertos (teórico): 50,000,000
+  - Cobertura teórica: 82.69%
+
+RESULTADOS DE PRUEBAS (100 tests):
+  - Colisiones encontradas: 40/100
+  - Tasa de éxito: 40.00%
+  - Fallos: 60
+
+TIEMPOS DE BÚSQUEDA:
+  General:
+    - Tiempo promedio: 5.1133 segundos
+    - Tiempo mínimo: 0.3397 segundos
+    - Tiempo máximo: 7.3591 segundos
+    - Desviación estándar: 1.9926 segundos
+
+  Búsquedas exitosas:
+    - Tiempo promedio: 3.0437 segundos
+    - Tiempo mínimo: 0.3397 segundos
+    - Tiempo máximo: 6.2938 segundos
+
+  Búsquedas fallidas:
+    - Tiempo promedio: 6.4931 segundos
+    - Tiempo mínimo: 6.1404 segundos
+    - Tiempo máximo: 7.3591 segundos
+
+ANÁLISIS:
+  - Eficiencia real vs teórica: 48.4%
+  - Pérdida por colisiones: 51.6%
+
+======================================================================

@@ -4,12 +4,10 @@ import os
 from typing import Dict, Tuple, Optional
 
 # Parámetros (deben coincidir con los de construcción)
-ALPHABET = "abcdefghijklmnopqrstuvwxyz"
-PSW_LEN = 5
-HASH_LEN = 40
-TRUNC_LEN = 8
-ALPHABET_SIZE = len(ALPHABET)
-SPACE_SIZE = ALPHABET_SIZE ** PSW_LEN
+from config import (
+    ALPHABET, PSW_LEN, HASH_LEN, TRUNC_LEN,
+    ALPHABET_SIZE, SPACE_SIZE
+)
 
 def hash_function(password: str) -> bytes:
     """

@@ -11,16 +11,10 @@ from datetime import datetime
 
 # ---------------- PARÁMETROS ----------------
 
-    # ALGORITMO HASH: SHA-256
-    # Nº CARACTERES HASH: 40 bits
-    # Nº CARACTERES CONTRASEÑA: 5 caracteres
-
-ALPHABET = "abcdefghijklmnopqrstuvwxyz"
-PSW_LEN = 5  # 5 caracteres
-HASH_LEN = 40  # 40 bits (5 bytes)
-TRUNC_LEN = 8
-ALPHABET_SIZE = len(ALPHABET)
-SPACE_SIZE = ALPHABET_SIZE ** PSW_LEN  # 26^5 = 11,881,376
+from config import (
+    ALPHABET, PSW_LEN, HASH_LEN, TRUNC_LEN,
+    ALPHABET_SIZE, SPACE_SIZE, t, n
+)
 
 # ------------- CREAR HASH --------------------------
 
@@ -212,11 +206,7 @@ def save_rainbow_table(tabla: dict[bytes, str], chain_length: int,
 
 # --------------------- MAIN -------------------------
 
-if __name__ == "__main__":
-    # Parámetros de la tabla
-    t = 1000  # Longitud de cadena
-    n = 11882  # Número de entradas
-    
+if __name__ == "__main__":   
     # Construir la tabla
     rainbow_table = build_rainbow_table(chain_length=t, num_entries=n)
     
