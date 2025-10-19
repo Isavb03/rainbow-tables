@@ -2,66 +2,20 @@
 # Require: t longitud de la secuencia
 # Require: n número de entradas
 
-import hashlib
 import random
-import string
 import csv
 import os
+import time
 from datetime import datetime
 
 # ---------------- PARÁMETROS ----------------
 
 from config import (
+    hash_function,
+    reduction_function,
     ALPHABET, PSW_LEN, HASH_LEN, TRUNC_LEN,
     ALPHABET_SIZE, SPACE_SIZE, t, n
 )
-
-# ------------- CREAR HASH --------------------------
-
-def hash_function(password: str) -> bytes:
-    """  
-    Args: password: String a hashear
-    
-    Returns: Hash truncado de 5 bytes (40 bits)
-    """
-    full_hash = hashlib.sha256(password.encode()).digest()
-    # Truncar a 40 bits (5 bytes)
-    return full_hash[:5]
-
-
-# ------------ FUNCION DE REDUCCIÓN -------------------
-
-def reduction_function(hash_bytes: bytes, iteration: int = 0) -> str:
-    """
-    Función de recodificación determinista que mapea un hash a un password.
-    Divide el hash de 40 bits en 8 trozos de 5 bits cada uno.
-    
-    Args:
-        hash_bytes: Hash de 5 bytes (40 bits)
-        iteration: Número de iteración para variar la función de reducción
-    
-    Returns:
-        Password de PSW_LEN caracteres del alfabeto
-    """
-    # Convertir bytes a entero
-    hash_int = int.from_bytes(hash_bytes, byteorder='big')
-    
-    # Añadir la iteración para hacer la función dependiente de la posición
-    hash_int = (hash_int + iteration) % (2**40)
-    
-    password = []
-    
-    # Dividir en 8 trozos de 5 bits y mapear a caracteres
-    for i in range(TRUNC_LEN):
-        # Extraer 5 bits
-        chunk = (hash_int >> (i * 5)) & 0x1F  # 0x1F = 31 = 0b11111
-        # Mapear al alfabeto (módulo para asegurar que está en rango)
-        char_idx = chunk % ALPHABET_SIZE
-        password.append(ALPHABET[char_idx])
-    
-    # Tomar solo PSW_LEN caracteres
-    return ''.join(password[:PSW_LEN])
-
 
 # -------------- GENERAR PASSWORD RANDOM -------------------
 
@@ -103,8 +57,7 @@ def build_chain(initial_password: str, chain_length: int) -> tuple[str, bytes]:
 
 # ----------------- CREAR TABLA ------------------------
 
-def build_rainbow_table(chain_length: int, num_entries: int, 
-                       verbose: bool = True) -> dict[bytes, str]:
+def build_rainbow_table(chain_length: int, num_entries: int, verbose: bool = True) -> dict[bytes, str]:
     """
     Construye una tabla arcoíris completa.
     
@@ -116,6 +69,8 @@ def build_rainbow_table(chain_length: int, num_entries: int,
     Returns:
         Diccionario con estructura {hash_final: password_inicial}
     """
+    start_time = time.time()  # Inicio del temporizador
+
     tabla = {}
     attempts = 0
     max_attempts = num_entries * 10  # Límite de intentos para evitar bucles infinitos
@@ -141,20 +96,24 @@ def build_rainbow_table(chain_length: int, num_entries: int,
             tabla[final_hash] = initial_psw
             
             if verbose and len(tabla) % 1000 == 0:
-                print(f"  Progreso: {len(tabla):,}/{num_entries:,} entradas " +
-                      f"({len(tabla)/num_entries*100:.1f}%) - Intentos: {attempts:,}")
+                print(f"  Progreso: {len(tabla):,}/{num_entries:,} entradas " + f"({len(tabla)/num_entries*100:.1f}%) - Intentos: {attempts:,}")
     
+    # Calcular tiempo total
+    total_time = time.time() - start_time  # en segundos
+
     if verbose:
         print(f"\n✓ Tabla construida con éxito!")
         print(f"  - Entradas únicas: {len(tabla):,}")
         print(f"  - Intentos totales: {attempts:,}")
         print(f"  - Eficiencia: {len(tabla)/attempts*100:.2f}%")
     
+    # Devolvemos también el tiempo total si se desea usar más adelante
+    tabla["_build_time"] = total_time  
+
     return tabla
 
 
-def save_rainbow_table(tabla: dict[bytes, str], chain_length: int, 
-                      num_entries: int, folder: str = "tables") -> str:
+def save_rainbow_table(tabla: dict[bytes, str], chain_length: int, num_entries: int, folder: str = "tables") -> str:
     """
     Guarda la tabla arcoíris en un archivo CSV.
     
@@ -175,6 +134,8 @@ def save_rainbow_table(tabla: dict[bytes, str], chain_length: int,
     filename = f"rainbow_table_t{chain_length}_n{num_entries}_{timestamp}.csv"
     filepath = os.path.join(folder, filename)
     
+    total_time = tabla.pop("_build_time", None)  # Recuperar si existe
+
     # Guardar en CSV
     with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
@@ -191,7 +152,12 @@ def save_rainbow_table(tabla: dict[bytes, str], chain_length: int,
         writer.writerow(['# Coverage (%)', f"{len(tabla) * chain_length / SPACE_SIZE * 100:.4f}"])
         writer.writerow(['# Timestamp', timestamp])
         writer.writerow([])  # Línea vacía
-        
+
+        if total_time is not None:
+            writer.writerow(['# Build Time (s)', f"{total_time:.2f}"])  # ⏱️
+        writer.writerow([])
+
+
         # Escribir encabezado de datos
         writer.writerow(['initial_password', 'final_hash_hex'])
         
@@ -200,6 +166,7 @@ def save_rainbow_table(tabla: dict[bytes, str], chain_length: int,
             writer.writerow([initial_psw, final_hash.hex()])
     
     print(f"\n✓ Tabla guardada en: {filepath}")
+    print(f"  - Tiempo de construcción: {total_time:.2f} s" if total_time else "")
     print(f"  - Tamaño del archivo: {os.path.getsize(filepath) / 1024:.2f} KB")
     
     return filepath

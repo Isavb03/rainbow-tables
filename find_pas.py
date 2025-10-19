@@ -1,37 +1,15 @@
-import hashlib
 import csv
 import os
 from typing import Dict, Tuple, Optional
 
 # Parámetros (deben coincidir con los de construcción)
 from config import (
+    hash_function,
+    reduction_function,
     ALPHABET, PSW_LEN, HASH_LEN, TRUNC_LEN,
     ALPHABET_SIZE, SPACE_SIZE
 )
 
-def hash_function(password: str) -> bytes:
-    """
-    Función resumen que trunca SHA-256 a 40 bits (5 bytes).
-    Debe ser idéntica a la usada en la construcción.
-    """
-    full_hash = hashlib.sha256(password.encode()).digest()
-    return full_hash[:5]
-
-def reduction_function(hash_bytes: bytes, iteration: int = 0) -> str:
-    """
-    Función de recodificación determinista.
-    Debe ser idéntica a la usada en la construcción.
-    """
-    hash_int = int.from_bytes(hash_bytes, byteorder='big')
-    hash_int = (hash_int + iteration) % (2**40)
-    
-    password = []
-    for i in range(TRUNC_LEN):
-        chunk = (hash_int >> (i * 5)) & 0x1F
-        char_idx = chunk % ALPHABET_SIZE
-        password.append(ALPHABET[char_idx])
-    
-    return ''.join(password[:PSW_LEN])
 
 def load_rainbow_table(filepath: str) -> Tuple[Dict[bytes, str], int]:
     """
@@ -155,8 +133,7 @@ def search_collision(p0: bytes, rainbow_table: Dict[bytes, str],
     
     return None
 
-def test_search_random(rainbow_table: Dict[bytes, str], chain_length: int, 
-                       num_tests: int = 10):
+def test_search_random(rainbow_table: Dict[bytes, str], chain_length: int, num_tests: int = 10):
     """
     Prueba el algoritmo de búsqueda con passwords COMPLETAMENTE aleatorios.
     Esta prueba simula un ataque real donde no sabemos si el password está en la tabla.
@@ -181,8 +158,7 @@ def test_search_random(rainbow_table: Dict[bytes, str], chain_length: int,
         # Buscar colisión
         import time
         start = time.time()
-        found_pwd = search_collision(original_hash, rainbow_table, 
-                                     chain_length, verbose=False)
+        found_pwd = search_collision(original_hash, rainbow_table, chain_length, verbose=False)
         elapsed = time.time() - start
         total_time += elapsed
         
@@ -211,8 +187,7 @@ def test_search_random(rainbow_table: Dict[bytes, str], chain_length: int,
     
     return success_count, num_tests
 
-def test_search_from_table(rainbow_table: Dict[bytes, str], chain_length: int, 
-                           num_tests: int = 10):
+def test_search_from_table(rainbow_table: Dict[bytes, str], chain_length: int, num_tests: int = 10):
     """
     Prueba el algoritmo generando passwords DESDE las cadenas de la tabla.
     Esta prueba verifica que el algoritmo funciona correctamente.
@@ -230,8 +205,7 @@ def test_search_from_table(rainbow_table: Dict[bytes, str], chain_length: int,
     total_time = 0
     
     # Seleccionar cadenas aleatorias de la tabla
-    sample_entries = random.sample(list(rainbow_table.items()), 
-                                  min(num_tests, len(rainbow_table)))
+    sample_entries = random.sample(list(rainbow_table.items()), min(num_tests, len(rainbow_table)))
     
     for test_num, (final_hash, initial_pwd) in enumerate(sample_entries, 1):
         # Generar un password intermedio en la cadena
@@ -247,8 +221,7 @@ def test_search_from_table(rainbow_table: Dict[bytes, str], chain_length: int,
         
         # Buscar colisión
         start = time.time()
-        found_pwd = search_collision(target_hash, rainbow_table, 
-                                     chain_length, verbose=False)
+        found_pwd = search_collision(target_hash, rainbow_table, chain_length, verbose=False)
         elapsed = time.time() - start
         total_time += elapsed
         
@@ -306,7 +279,7 @@ if __name__ == "__main__":
             success1, total1 = test_search_from_table(rainbow_table, t, num_tests=20)
             
             # PRUEBA 2: Simular ataque real con passwords aleatorios
-            success2, total2 = test_search_random(rainbow_table, t, num_tests=50)
+            success2, total2 = test_search_random(rainbow_table, t, num_tests=1000)
             
             # Resumen global
             print("\n" + "="*70)
